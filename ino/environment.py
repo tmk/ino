@@ -237,6 +237,27 @@ class Environment(dict):
                     multikey, _, val = line.partition('=')
                     multikey = multikey.split('.')
 
+                    # make a model variant
+                    # diecimila.menu.cpu.atmega328.* -> #  'diecimila_atmega328'.*
+                    if len(multikey) > 3 and 'menu' == multikey[1] and 'cpu' == multikey[2]:
+                        # remove original model from list-models
+                        if 'name' in self['board_models'][multikey[0]]:
+                            self['board_models'][multikey[0]]['_name'] = self['board_models'][multikey[0]].pop('name')
+
+                        model_name = multikey[0] + '_' + multikey[3]
+                        if model_name not in self['board_models']:
+                            self['board_models'][model_name] = {}
+                            #self['board_models'][model].update(self['board_models'][multikey[0]])
+                            self['board_models'][model_name].update({ k : v for k, v in self['board_models'][multikey[0]].iteritems() if key not in ['_name'] })
+
+                        # diecimila.menu.cpu.atmega328=ATmega328
+                        if len(multikey) == 4:
+                            multikey.append('name');
+                            val = self['board_models'][multikey[0]]['_name'] + ' - ' + val
+
+                        del multikey[0:4]
+                        multikey.insert(0, model_name)
+
                     # traverse into dictionary up to deepest level
                     # create nested dictionaries if they aren't exist yet
                     subdict = self['board_models']
@@ -348,4 +369,4 @@ class Environment(dict):
 class BoardModels(OrderedDict):
     def format(self):
         map = [(key, val['name']) for key, val in self.iteritems() if 'name' in val]
-        return format_available_options(map, head_width=12, default=self.default)
+        return format_available_options(map, head_width=20, default=self.default)
